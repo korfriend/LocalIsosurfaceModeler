@@ -17,5 +17,7 @@ You can download the code by using Git and cloning the repository, or downloadin
 
 - Eign 3.3.4 (included)
 - GL math (included)
+- Adaptive multigrid solver (ver. 10.04, included) http://www.cs.jhu.edu/~misha/Code/PoissonRecon/Version10.04/
+- Nanoflann (ver. 1.3.0, included) https://github.com/jlblancoc/nanoflann
 - VisMotive Engine
 - OpenCV 4.0 or higher
