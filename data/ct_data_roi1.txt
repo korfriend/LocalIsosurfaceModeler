@@ -1,0 +1,16 @@
+VolumeFileSize = 233 233 199
+VoxelPitch = 0.178056 0.178056 0.178056
+DataType = unsigned short
+AxisOSX2WSX = 1.000000 0.000000 -0.000000
+AxisOSY2WSY = -0.000000 0.000000 -1.000000
+AXisZ_RHS = true
+ActualMinMaxValue = 16900.000000 63965.000000
+StoredMinMaxValue = 0.000000 47065.000000
+StudyDate = 20200717
+SeriesDate = 20200727
+StudyTime = 101820
+SeriesTime = 143035
+SeriesDescription = Volume
+StudyInstanceUID = 1.2.410.200064.1.1.648296300656.116532492483
+SeriesInstanceUID = 1.2.410.200064.1.1.649175435684.116532492483.1.0
+SeriesNumber = 0
