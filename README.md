@@ -37,7 +37,7 @@ Current build environment assumes the following structure of the developement fo
 
     yourdevfolder/
      |
-     ├──bin (build target folders)
+     ├──bin (built files are available in https://github.com/korfriend/VisMotive-BuiltBinary)
      │   ├──X64_Debug
      │   └──X64_Release
      └──External Projects
