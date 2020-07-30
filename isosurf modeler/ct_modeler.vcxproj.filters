@@ -3,7 +3,6 @@
   <ItemGroup>
     <ClInclude Include="ct_modeler.h" />
     <ClInclude Include="helpers.hpp" />
-    <ClInclude Include="AdaptiveSolvers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ct_modeler.cpp" />

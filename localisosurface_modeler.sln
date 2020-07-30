@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PoissonRecon", "adaptive solver\PoissonRecon.vcxproj", "{46F87D0E-C53A-4F95-AB48-A5DBA8014340}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ct_modeler", "isosurf modeler\ct_modeler.vcxproj", "{C8C8EC08-E588-4446-9717-C4834E7B01A1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{46F87D0E-C53A-4F95-AB48-A5DBA8014340} = {46F87D0E-C53A-4F95-AB48-A5DBA8014340}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

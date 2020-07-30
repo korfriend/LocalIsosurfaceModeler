@@ -1105,7 +1105,7 @@ bool ScreenedPoissonSurface2D(__ProcBuffers<__float2>* pOut,
 	
 	InCore.set = true;
 	Verbose.set = true;
-	Scale.value = std::max(Scale.value, 1.1f);
+	Scale.value = max(Scale.value, 1.1f);
 
 	if (MaxMemoryGB.value > 0) SetPeakMemoryMB(MaxMemoryGB.value << 10);
 #ifdef _OPENMP
@@ -1160,7 +1160,7 @@ bool ScreenedPoissonSurface3D(__ProcBuffers< __float3>* pOut,
 	//BType.set = true;
 	
 	Verbose.set = true;
-	Scale.value = std::max(Scale.value, 1.1f);
+	Scale.value = max(Scale.value, 1.1f);
 
 	omp_set_num_threads(Threads.value > 1 ? Threads.value : 1);
 	std::cout << "process cores : " << Threads.value << std::endl;

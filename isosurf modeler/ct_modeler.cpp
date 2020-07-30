@@ -1,7 +1,7 @@
 #include "ct_modeler.h"
 #include "helpers.hpp"
 //#include "vismtv_morphfilters.h"
-#include "AdaptiveSolvers.h"
+#include "../adaptive solver/AdaptiveSolvers.h"
 #pragma warning (disable:4756)
 
 map <string, VmHMODULE> dll_import;
@@ -1232,13 +1232,7 @@ enum DataType {
 	__DataTypeFLOAT,/*!< 4bytes, float, defined as float*/
 	__DataTypeDOUBLE,/*!< 8bytes, float, defined as double*/
 }; 
-typedef struct __int3__
-{
-	int x, y, z;
-	__int3__() { x = y = z = 0; };
-	__int3__(float _x, float _y, float _z) { x = (int)_x; y = (int)_y; z = (int)_z; };
-	__int3__(int _x, int _y, int _z) { x = _x; y = _y; z = _z; };
-}  __int3;
+
 auto ___mesh_extract = [](__ProcBuffers<__float3>& trisBuf, const vmmat44f& mat_os2ws, const float iso_value,
 	const void** slices, const void* chunk, DataType dt, const __int3 size, const bool inverse_normal)
 {
