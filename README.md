@@ -33,7 +33,7 @@ If you need binary files of built version of this source code for the purpose of
 - Nanoflann (ver. 1.3.0, included) https://github.com/jlblancoc/nanoflann
 
 ### Build Environments
-Current build environment assumes the following structure of the developement folders. As external dependencies, our VisMotive-based projects use this core APIs and libraries for most of the volumetric and polygonal processing tasks. To be clear your folder structure should be something quite similar to:
+Current build environment assumes the following structure of the developement folders. As external dependencies, our VisMotive-based projects use the core APIs and libraries (https://github.com/korfriend/VisMotive-CoreAPIs/) for most of the volumetric and polygonal processing tasks. To be clear your folder structure should be something quite similar to:
 
     yourdevfolder/
      |
