@@ -1,8 +1,43 @@
 #include "ct_modeler.h"
 #include "helpers.hpp"
-#include "vismtv_morphfilters.h"
+//#include "vismtv_morphfilters.h"
 #include "AdaptiveSolvers.h"
 #pragma warning (disable:4756)
+
+map <string, VmHMODULE> dll_import;
+template <typename T>
+T LoadDLL(string dll_name, string function_name)
+{
+	VmHMODULE hMouleLib = NULL;
+	auto it = dll_import.find(dll_name);
+	if (it == dll_import.end())
+	{
+		VMLOADLIBRARY(hMouleLib, dll_name.c_str());
+		if (hMouleLib != NULL)
+			dll_import[dll_name] = hMouleLib;
+	}
+	else
+		hMouleLib = it->second;
+	if (hMouleLib == NULL)
+	{
+		cout << "DLL import ERROR : " << dll_name << endl;
+		return NULL;
+	}
+
+	T lpdll_function = NULL;
+	lpdll_function = (T)VMGETPROCADDRESS(hMouleLib, function_name.c_str());
+	if (lpdll_function == NULL)
+		cout << "FUNC import ERROR : " << function_name << endl;
+	return lpdll_function;
+}
+
+void ReleaseDlls()
+{
+	for (auto it = dll_import.begin(); it != dll_import.end(); it++)
+		VMFREELIBRARY(it->second);
+	dll_import.clear();
+}
+
 
 int load_foreground(const std::string& file_name, const vmobjects::VmVObjectVolume& main_volume, vmobjects::VmVObjectVolume& fore_volume,
 	const bool flip_x, const bool flip_y, const bool flip_z)
@@ -179,8 +214,24 @@ int processing_stage1(vmobjects::VmVObjectPrimitive& candidate_pts, vmobjects::V
 	DWORD time_stage1_band = 0, time_stage1_rt = 0, time_stage1_sp = 0, time_stage1_gc = 0;
 
 	{
+		typedef bool(*LPDLL_CALL_MoFiInitializeDx11)();
+		typedef bool(*LPDLL_CALL_MoFiDeinitializeDx11)();
+		typedef bool(*LPDLL_CALL_MorphGaussianBlur3D)(ushort** ppusVolumeIn, ushort** ppusVolumeOut, vmint3 i3SizeVolume, vmint2 i2OffsetZ, int iKernelSizeHalf, float fSigma, LocalProgress* _progress);
+		typedef bool(*LPDLL_CALL_MorphErosionFilter3D)(ushort** ppusVolumeIn, ushort** ppusVolumeOut, vmint3 i3SizeVolume, vmint2 i2OffsetZ, int iKernelSizeHalf, LocalProgress* _progress);
+		typedef bool(*LPDLL_CALL_MorphDilationFilter3D)(ushort** ppusVolumeIn, ushort** ppusVolumeOut, vmint3 i3SizeVolume, vmint2 i2OffsetZ, int iKernelSizeHalf, LocalProgress* _progress);
+		LPDLL_CALL_MoFiInitializeDx11 lpdll_init = LoadDLL<LPDLL_CALL_MoFiInitializeDx11>("vismtv_morphfilters", "MoFiInitializeDx11");
+		LPDLL_CALL_MoFiDeinitializeDx11 lpdll_deinit = LoadDLL<LPDLL_CALL_MoFiDeinitializeDx11>("vismtv_morphfilters", "MoFiDeinitializeDx11");
+		LPDLL_CALL_MorphGaussianBlur3D lpdll_gaussianblur = LoadDLL<LPDLL_CALL_MorphGaussianBlur3D>("vismtv_morphfilters", "MorphGaussianBlur3D");
+		LPDLL_CALL_MorphErosionFilter3D lpdll_erosion = LoadDLL<LPDLL_CALL_MorphErosionFilter3D>("vismtv_morphfilters", "MorphErosionFilter3D");
+		LPDLL_CALL_MorphDilationFilter3D lpdll_dilation = LoadDLL<LPDLL_CALL_MorphDilationFilter3D>("vismtv_morphfilters", "MorphDilationFilter3D");
+		if (lpdll_init == NULL || lpdll_deinit == NULL || lpdll_gaussianblur == NULL || lpdll_erosion == NULL || lpdll_dilation == NULL)
+		{
+			cout << "fail to load morphological filter module" << endl;
+			return -1;
+		}
+
 		LocalProgress _progress;
-		MoFiInitializeDx11();
+		lpdll_init();
 		if (gaussian_kernel_width > 1)
 		{
 			//{
@@ -190,11 +241,11 @@ int processing_stage1(vmobjects::VmVObjectPrimitive& candidate_pts, vmobjects::V
 			//	for (int z = 0; z < d; z++)
 			//		for (int xy = 0; xy < w*h; xy++)
 			//			vol_resample_info.vol_slices[z][xy] = vol_original_info.vol_slices[z][xy] > 17000 ? vol_original_info.vol_slices[z][xy] : 0;
-			//	MorphGaussianBlur3D(vol_resample_info.vol_slices, vol_filtered_info.vol_slices, vmint3(w, h, d), vmint2(), gaussian_kernel_width / 2, 1.4f, &_progress);
+			//	lpdll_gaussianblur(vol_resample_info.vol_slices, vol_filtered_info.vol_slices, vmint3(w, h, d), vmint2(), gaussian_kernel_width / 2, 1.4f, &_progress);
 			//	VMSAFE_DELETE2DARRAY(vol_resample_info.vol_slices, d);
 			//}
 			//vmhelpers::AllocateVoidPointer2D((void***)&vol_filtered_info.vol_slices, d, w*h * sizeof(ushort));
-			MorphGaussianBlur3D(vol_original_info.vol_slices, vol_filtered_info.vol_slices, vmint3(w, h, d), vmint2(), gaussian_kernel_width / 2, 1.4f, &_progress);
+			lpdll_gaussianblur(vol_original_info.vol_slices, vol_filtered_info.vol_slices, vmint3(w, h, d), vmint2(), gaussian_kernel_width / 2, 1.4f, &_progress);
 		}
 		else
 		{
@@ -216,10 +267,10 @@ int processing_stage1(vmobjects::VmVObjectPrimitive& candidate_pts, vmobjects::V
 				mask_info_mid.vol_slices[z][xy] = ((byte**)fore_vol_data->vol_slices)[z][xy] > 0 ? 60000 : 0;
 
 		DWORD time_morph = timeGetTime();
-		MorphGaussianBlur3D(mask_info_mid.vol_slices, mask_info_mid.vol_slices, vmint3(w, h, d), vmint2(), 2, 1.4f, &_progress);
+		lpdll_gaussianblur(mask_info_mid.vol_slices, mask_info_mid.vol_slices, vmint3(w, h, d), vmint2(), 2, 1.4f, &_progress);
 		
-		if (t_in > 0) MorphErosionFilter3D(mask_info_mid.vol_slices, mask_info_inside.vol_slices, vmint3(w, h, d), vmint2(), t_in, &_progress);
-		if (t_out > 0) MorphDilationFilter3D(mask_info_mid.vol_slices, mask_info_outside.vol_slices, vmint3(w, h, d), vmint2(), t_out, &_progress);
+		if (t_in > 0) lpdll_erosion(mask_info_mid.vol_slices, mask_info_inside.vol_slices, vmint3(w, h, d), vmint2(), t_in, &_progress);
+		if (t_out > 0) lpdll_dilation(mask_info_mid.vol_slices, mask_info_outside.vol_slices, vmint3(w, h, d), vmint2(), t_out, &_progress);
 
 		//cv::Mat img1(h, w, CV_8UC1);
 		//cv::Mat img2(h, w, CV_8UC1);
@@ -241,12 +292,14 @@ int processing_stage1(vmobjects::VmVObjectPrimitive& candidate_pts, vmobjects::V
 			mask_info_mid.vol_slices = NULL;
 		}
 
-		if (mask_info_mid.vol_slices != NULL) MorphGaussianBlur3D(mask_info_mid.vol_slices, mask_info_mid.vol_slices, vmint3(w, h, d), vmint2(), 1, 1.4f, &_progress);
-		MorphGaussianBlur3D(mask_info_outside.vol_slices, mask_info_outside.vol_slices, vmint3(w, h, d), vmint2(), 1, 1.4f, &_progress);
-		MorphGaussianBlur3D(mask_info_inside.vol_slices, mask_info_inside.vol_slices, vmint3(w, h, d), vmint2(), 1, 1.4f, &_progress);
-		MoFiDeinitializeDx11(); // 일단 생략... MPR 때문
+		if (mask_info_mid.vol_slices != NULL) lpdll_gaussianblur(mask_info_mid.vol_slices, mask_info_mid.vol_slices, vmint3(w, h, d), vmint2(), 1, 1.4f, &_progress);
+		lpdll_gaussianblur(mask_info_outside.vol_slices, mask_info_outside.vol_slices, vmint3(w, h, d), vmint2(), 1, 1.4f, &_progress);
+		lpdll_gaussianblur(mask_info_inside.vol_slices, mask_info_inside.vol_slices, vmint3(w, h, d), vmint2(), 1, 1.4f, &_progress);
+		lpdll_deinit(); // 일단 생략... MPR 때문
 		make_band(band_info, (int)30000, (int)30000, mask_info_outside, mask_info_inside);
 		cout << ">>> Time for band computation : " << timeGetTime() - time_stage1_band << " ms, (morph : " << timeGetTime() - time_morph << " ms)" << endl;
+
+		ReleaseDlls();
 	}
 
 	// test // 
@@ -519,7 +572,7 @@ int update_strongweak_points(vmobjects::VmVObjectPrimitive& candidate_pts, const
 	lobj->LoadBufferPtr("_vlist_int_coolmap", (void**)&cool_color_map_ptr, _t_size, &num_ele_jet_color_map);
 	// test : Fig.6 (a)
 	/*{
-		float _g_h = 80; // Piston model : 10000, Knee : 90
+		float _g_h = 10000; // Piston model : 10000, Knee : 90
 		float _g_l = _g_h * 0.05;
 		for (uint i = 0; i < prim_data->num_vtx; i++)
 		{
@@ -541,7 +594,7 @@ int update_strongweak_points(vmobjects::VmVObjectPrimitive& candidate_pts, const
 			int clr_idx = (int)(gc * (float)(COLORMAP_SIZE - 1));
 			int color = jet_color_map_ptr[clr_idx];
 			convert_int_to_float3(color, clr_vtx[i]);
-			clr_vtx[i] = vmfloat3(1, 1, 0); // Fig.13 candidate points (displaying yellow points)
+			//clr_vtx[i] = vmfloat3(1, 1, 0); // Fig.13 candidate points (displaying yellow points)
 		}
 		return 0;
 	}/**/
@@ -557,11 +610,11 @@ int update_strongweak_points(vmobjects::VmVObjectPrimitive& candidate_pts, const
 		{
 			gm = min(g_h, max(g_l, gm));
 			int clr_idx = (int)((gm - g_l) / (g_h - g_l) * (float)(COLORMAP_SIZE - 1));
-			int color = jet_color_map_ptr[clr_idx];
-			//int color = cool_color_map_ptr[clr_idx]; // Fig.6 (c)
+			//int color = jet_color_map_ptr[clr_idx];
+			int color = cool_color_map_ptr[clr_idx]; // Fig.6 (c) (d)
 			convert_int_to_float3(color, clr_vtx[i]);
 		}
-
+	
 	}
 	// test : Fig.6 (c)
 	//return 0;
@@ -1374,8 +1427,54 @@ int processing_final(vmobjects::VmVObjectPrimitive& surface_mesh,
 	{
 		vmmat44f mat_os2ws;
 		___compute_tr_solver(mat_os2ws, trisbuf.res, pos_r_pts, pos_hf_pts);
-		___mesh_extract(trisbuf, mat_os2ws, trisbuf.iso_value, (const void**)trisbuf.level_set, NULL,
-			DataType::__DataTypeFLOAT, __int3(trisbuf.res, trisbuf.res, trisbuf.res), false);
+
+		bool use_smooth_filter = true;
+		if (use_smooth_filter)
+		{
+			
+			ushort** vol_ushort = new ushort*[trisbuf.res];
+			for (int i = 0; i < trisbuf.res; i++) vol_ushort[i] = new ushort[trisbuf.res * trisbuf.res];
+			float min_v = FLT_MAX, max_v = -FLT_MAX;
+			for (int i = 0; i < trisbuf.res; i++)
+				for(int j = 0; j < trisbuf.res*trisbuf.res; j++)
+				{
+					float v = trisbuf.level_set[i][j];
+					min_v = min(min_v, v);
+					max_v = max(max_v, v);
+				}
+			for (int i = 0; i < trisbuf.res; i++)
+				for (int j = 0; j < trisbuf.res*trisbuf.res; j++)
+				{
+					float v = trisbuf.level_set[i][j]; 
+					vol_ushort[i][j] = (ushort)((v - min_v) / (max_v - min_v) * 65535.f);
+				}
+			
+			typedef bool(*LPDLL_CALL_MoFiInitializeDx11)();
+			typedef bool(*LPDLL_CALL_MoFiDeinitializeDx11)();
+			typedef bool(*LPDLL_CALL_MorphGaussianBlur3D)(ushort** ppusVolumeIn, ushort** ppusVolumeOut, vmint3 i3SizeVolume, vmint2 i2OffsetZ, int iKernelSizeHalf, float fSigma, LocalProgress* _progress);
+			LPDLL_CALL_MoFiInitializeDx11 lpdll_init = LoadDLL<LPDLL_CALL_MoFiInitializeDx11>("vismtv_morphfilters", "MoFiInitializeDx11");
+			LPDLL_CALL_MoFiDeinitializeDx11 lpdll_deinit = LoadDLL<LPDLL_CALL_MoFiDeinitializeDx11>("vismtv_morphfilters", "MoFiDeinitializeDx11");
+			LPDLL_CALL_MorphGaussianBlur3D lpdll_gaussianblur = LoadDLL<LPDLL_CALL_MorphGaussianBlur3D>("vismtv_morphfilters", "MorphGaussianBlur3D");
+			if (lpdll_init == NULL || lpdll_deinit == NULL || lpdll_gaussianblur == NULL)
+			{
+				cout << "fail to load morphological filter module" << endl;
+				return -1;
+			}
+
+			lpdll_init();
+			LocalProgress _progress;
+			lpdll_gaussianblur(vol_ushort, vol_ushort, vmint3(trisbuf.res, trisbuf.res, trisbuf.res), vmint2(), 3, 1.4f, &_progress);
+			___mesh_extract(trisbuf, mat_os2ws, ((trisbuf.iso_value - min_v) / (max_v - min_v) * 65535.f), (const void**)vol_ushort, NULL,
+				DataType::__DataTypeUNSIGNEDSHORT, __int3(trisbuf.res, trisbuf.res, trisbuf.res), false);
+			VMSAFE_DELETE2DARRAY(vol_ushort, trisbuf.res);
+			lpdll_deinit();
+			ReleaseDlls();
+		}
+		else
+		{
+			___mesh_extract(trisbuf, mat_os2ws, trisbuf.iso_value, (const void**)trisbuf.level_set, NULL,
+				DataType::__DataTypeFLOAT, __int3(trisbuf.res, trisbuf.res, trisbuf.res), false);
+		}
 	}
 
 	auto register_trisBuf_to_pobj = [](__ProcBuffers<__float3>& trisbuf, vmobjects::VmVObjectPrimitive& pobj)

@@ -1,5 +1,5 @@
 #pragma once
-#include "CommonUnits/VimCommon.h"
+#include "VimCommon.h"
 #pragma warning (disable:4756)
 
 #include <iostream>
@@ -427,7 +427,7 @@ void raytraversal_gradmax(std::vector<vmfloat3>& lmax_pts,
 				|| pos_cur_vs.z >= vol_size_f.z - safe_bnd)
 				continue;
 
-			if (j > 2 && band_info.vol_slices) // j > 2 is for safe zone
+			if (j > 1 && band_info.vol_slices) // j > 1 is for safe zone
 			{
 				float mask_value = __Safe_TrilinearSample<char>(pos_cur_vs, band_info.vol_size, band_info.width_slice, EXB, band_info.vol_slices, -1);
 				if (mask_value == 1.f || mask_value == -1.f)
@@ -447,7 +447,7 @@ void raytraversal_gradmax(std::vector<vmfloat3>& lmax_pts,
 			}
 		}
 
-#define QUADRATIC
+//#define QUADRATIC
 #ifdef QUADRATIC
 		auto quadratic_maxsampler = [](const vmfloat3& pos_a, const vmfloat3& pos_c, const float gm_a, const float gm_b, const float gm_c)
 		{
@@ -1141,6 +1141,7 @@ inline void convert_int_to_float3(const int _color, vmfloat3& rgb)
 	rgb.g = ((_color >> 8) & 0xFF) / 255.f;
 	rgb.b = ((_color >> 0) & 0xFF) / 255.f;
 }
+
 
 //auto is_inside_box = [](vmfloat3& p, vmfloat3& bp, float bs)
 //{

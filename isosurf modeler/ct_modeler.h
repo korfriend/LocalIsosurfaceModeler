@@ -4,7 +4,7 @@
 #define __dojo_export extern "C" __declspec(dllexport)
 #endif
 
-#include "CommonUnits/VimCommon.h"
+#include "VimCommon.h"
 
 // OpenGL defaults to column major 'order' matrices based on col-major computation, which means access is of the format mat[col][row].
 // https://en.wikipedia.org/wiki/Row-_and_column-major_order
