@@ -52,5 +52,5 @@ build folders (i.g., X64_Debug and X64_Release) should include the following dll
 - CommonUnits.dll
 - vismtv_morphfilters.dll
 
-### What Nex?!
+### What Next?!
 - Sample code for "get started" will be available via VisMotive framework.
