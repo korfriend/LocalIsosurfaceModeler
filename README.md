@@ -14,7 +14,7 @@ Detailed "get started" will be prepared with a sample code project.
 You can download the code by using Git and cloning the repository, or downloading it as zip. This will give you the full C++ source code that you must build for yourself. 
 
 ### NOTICE:
-If you need binary files of built version of this source code for the purpose of testing this code, please contact me (korfriend@gmail.com).
+If you need binary files of built version of this source code, please contact me (korfriend@gmail.com).
 
 ### Platforms:
 - Windows PC Desktop (x64)
@@ -48,7 +48,7 @@ Current build environment assumes the following structure of the developement fo
          ├──...
          └──...
 
-build folders (i.g., X64_Debug and X64_Release) should include the following dll files
+build folders (e.g., X64_Debug and X64_Release) should include the following dll files
 - CommonUnits.dll
 - vismtv_morphfilters.dll
 
