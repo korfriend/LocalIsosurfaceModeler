@@ -2,7 +2,7 @@
 
 [![Build status][s1]][av] [![License: MIT][s3]][li]
 
-[s1]: https://ci.appveyor.com/api/projects/status/3dbcee5gd6i7qh7v?svg=true
+[s1]: https://ci.appveyor.com/api/github/webhook?id=uundlmkihp1u3xn8
 [s3]: https://img.shields.io/badge/License-MIT-orange.svg
 
 [av]: https://ci.appveyor.com/project/korfriend/localisosurfacemodeler
