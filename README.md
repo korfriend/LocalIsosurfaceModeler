@@ -29,7 +29,7 @@ If you need binary files of built version of this source code, please contact me
 - Eign 3.3.4 (included)
 - GL math (included)
 - VisMotive (included)
-- Adaptive multigrid solver (ver. 10.04, included) http://www.cs.jhu.edu/~misha/Code/PoissonRecon/Version10.04/
+- modified Adaptive multigrid solver (ver. 10.04, included) http://www.cs.jhu.edu/~misha/Code/PoissonRecon/Version10.04/
 - Nanoflann (ver. 1.3.0, included) https://github.com/jlblancoc/nanoflann
 
 ### Build Environments
