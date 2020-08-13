@@ -9,7 +9,7 @@
 [li]: https://opensource.org/licenses/MIT
 
 <br/>
-This project is for a high-fidelity surface extraction technique for volumetric (CT) scans, which is based on the paper entitled "Confidence-controlled Local Isosurfacing" (under review. minor revisions in TVCG).
+This project is for a high-fidelity surface extraction technique for volumetric (CT) scans, which is based on the paper entitled "Confidence-controlled Local Isosurfacing" (accepted in TVCG and prepairing preprint (200810)).
 Detailed "get started" will be prepared with a sample code project. 
 You can download the code by using Git and cloning the repository, or downloading it as zip. This will give you the full C++ source code that you must build for yourself. 
 
