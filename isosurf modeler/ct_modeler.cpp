@@ -671,6 +671,8 @@ int processing_stage2(vmobjects::VmVObjectPrimitive& reliable_pts, vmobjects::Vm
 	float real_epsilon = vol_info.min_sample_dist * epsilon;
 	float real_epsilon_b = vol_info.min_sample_dist * epsilon_b;
 
+	holefilling_pts.RegisterCustomParameter("_int3_VolSize", vol_info.vol_size);
+
 	VmLObject* lobj = ((VmVObjectPrimitive*)&candidate_pts)->GetBufferObject();
 	size_t _t_size;
 	float* metric_gm_ptr;
@@ -1301,12 +1303,21 @@ int processing_final(vmobjects::VmVObjectPrimitive& surface_mesh,
 	cout << "     * eta  : " << eta << endl;
 	cout << "     * m    : " << m << endl;
 
+	int _otlev = otlev;
+	if (otlev < 0)
+	{
+		vmint3 vol_size;
+		holefill_pts.GetCustomParameter("_int3_VolSize", data_type::dtype<vmint3>(), &vol_size);
+		int max_size = max(max(vol_size.x, vol_size.y), vol_size.z);
+		_otlev = (int)(log2l((double)max_size) + 0.5);
+	}
+	cout << "     * otree lev    : " << _otlev << endl;
 	// poisson //
 	const bool use_our_mc = false;
 	vector<string> str_cmd_sps_params;
 	{
 		str_cmd_sps_params.push_back("--depth");
-		str_cmd_sps_params.push_back(std::to_string(otlev)); // cube - 1 
+		str_cmd_sps_params.push_back(std::to_string(_otlev)); // cube - 1 
 		str_cmd_sps_params.push_back("--fullDepth");
 		str_cmd_sps_params.push_back(std::to_string(0));
 		str_cmd_sps_params.push_back("--cgDepth");
