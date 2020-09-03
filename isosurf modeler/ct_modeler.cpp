@@ -798,7 +798,8 @@ int processing_stage2(vmobjects::VmVObjectPrimitive& reliable_pts, vmobjects::Vm
 
 		map<int, std::vector<int>> map_weak_clusters;
 		map<int, int> cluster_connectivity;
-		compute_num_boundary_pts(map_weak_clusters, cluster_connectivity, pos_strong_pts, nrl_strong_pts, pos_weak_pts, nrl_weak_pts, real_epsilon, real_epsilon_b, NULL);
+		if(pos_weak_pts.size() > 0)
+			compute_num_boundary_pts(map_weak_clusters, cluster_connectivity, pos_strong_pts, nrl_strong_pts, pos_weak_pts, nrl_weak_pts, real_epsilon, real_epsilon_b, NULL);
 		// test
 		//holefilling_pts.GetBufferObject()->ReplaceOrAddBufferPtr("_buffer_pos_spheres", &bnd_pts[0], (int)bnd_pts.size(), sizeof(vmfloat3));
 
@@ -840,7 +841,8 @@ int processing_stage2(vmobjects::VmVObjectPrimitive& reliable_pts, vmobjects::Vm
 
 		map<int, std::vector<int>> map_remain_clusters;
 		map<int, int> cluster_connectivity;
-		compute_num_boundary_pts(map_remain_clusters, cluster_connectivity, pos_reliable_pts, nrl_reliable_pts, pos_remain_pts, nrl_remain_pts, real_epsilon, real_epsilon_b, NULL);
+		if (pos_remain_pts.size() > 0)
+			compute_num_boundary_pts(map_remain_clusters, cluster_connectivity, pos_reliable_pts, nrl_reliable_pts, pos_remain_pts, nrl_remain_pts, real_epsilon, real_epsilon_b, NULL);
 
 		for (auto it = map_remain_clusters.begin(); it != map_remain_clusters.end(); it++)
 		{
@@ -1414,11 +1416,10 @@ int processing_final(vmobjects::VmVObjectPrimitive& surface_mesh,
 				}
 				prev_offset += count_vtx;
 			}
+			// test //
+			psm_reliable_pts->GetBufferObject()->ReplaceOrAddBufferPtr("_vlist_FLOAT3_PosField", &pos_hf_pts[0], (int)pos_hf_pts.size(), sizeof(vmfloat3));
+			psm_reliable_pts->GetBufferObject()->ReplaceOrAddBufferPtr("_vlist_FLOAT3_VecField", &nrl_hf_pts[0], (int)nrl_hf_pts.size(), sizeof(vmfloat3));
 		}
-
-		// test //
-		psm_reliable_pts->GetBufferObject()->ReplaceOrAddBufferPtr("_vlist_FLOAT3_PosField", &pos_hf_pts[0], (int)pos_hf_pts.size(), sizeof(vmfloat3));
-		psm_reliable_pts->GetBufferObject()->ReplaceOrAddBufferPtr("_vlist_FLOAT3_VecField", &nrl_hf_pts[0], (int)nrl_hf_pts.size(), sizeof(vmfloat3));
 	}
 
 	// test //
