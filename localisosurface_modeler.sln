@@ -10,6 +10,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ct_modeler", "isosurf model
 		{46F87D0E-C53A-4F95-AB48-A5DBA8014340} = {46F87D0E-C53A-4F95-AB48-A5DBA8014340}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample1", "Sample1\Sample1.vcxproj", "{08EBF6A5-8B97-467A-B3F1-B639BDBD6C2F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -34,6 +36,14 @@ Global
 		{C8C8EC08-E588-4446-9717-C4834E7B01A1}.Release|x64.Build.0 = Release|x64
 		{C8C8EC08-E588-4446-9717-C4834E7B01A1}.Release|x86.ActiveCfg = Release|Win32
 		{C8C8EC08-E588-4446-9717-C4834E7B01A1}.Release|x86.Build.0 = Release|Win32
+		{08EBF6A5-8B97-467A-B3F1-B639BDBD6C2F}.Debug|x64.ActiveCfg = Debug|x64
+		{08EBF6A5-8B97-467A-B3F1-B639BDBD6C2F}.Debug|x64.Build.0 = Debug|x64
+		{08EBF6A5-8B97-467A-B3F1-B639BDBD6C2F}.Debug|x86.ActiveCfg = Debug|Win32
+		{08EBF6A5-8B97-467A-B3F1-B639BDBD6C2F}.Debug|x86.Build.0 = Debug|Win32
+		{08EBF6A5-8B97-467A-B3F1-B639BDBD6C2F}.Release|x64.ActiveCfg = Release|x64
+		{08EBF6A5-8B97-467A-B3F1-B639BDBD6C2F}.Release|x64.Build.0 = Release|x64
+		{08EBF6A5-8B97-467A-B3F1-B639BDBD6C2F}.Release|x86.ActiveCfg = Release|Win32
+		{08EBF6A5-8B97-467A-B3F1-B639BDBD6C2F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

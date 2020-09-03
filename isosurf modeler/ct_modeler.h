@@ -13,7 +13,7 @@
 
 // input
 __dojo_export int load_foreground(const std::string& file_name, const vmobjects::VmVObjectVolume& main_volume, vmobjects::VmVObjectVolume& fore_volume,
-	const bool flip_x = false, const bool flip_y = false, const bool flip_z = false);
+	const int iso_value = -1, const int downsacled_fg = 1, const bool flip_x = false, const bool flip_y = false, const bool flip_z = false);
 
 __dojo_export int processing_stage1(vmobjects::VmVObjectPrimitive& candidate_pts, vmobjects::VmVObjectVolume& filtered_volume,
 	const vmobjects::VmVObjectVolume& main_volume, const vmobjects::VmVObjectVolume& fore_volume, const int t_in /*voxel unit*/, const int t_out /*voxel unit*/,
@@ -45,3 +45,5 @@ __dojo_export int localisosurface_points(vmobjects::VmVObjectPrimitive& sm_relia
 __dojo_export int processing_final(vmobjects::VmVObjectPrimitive& surface_mesh,
 	const vmobjects::VmVObjectPrimitive& sm_reliable_pts, const vmobjects::VmVObjectPrimitive& sm_holefill_pts, const vmobjects::VmVObjectPrimitive& holefill_pts, 
 	const int eta, const float m, const int otlev);
+
+__dojo_export bool function_launcher(const std::vector<vmobjects::VmObject*>& io_objs, const std::map<std::string, std::any>& parameters);

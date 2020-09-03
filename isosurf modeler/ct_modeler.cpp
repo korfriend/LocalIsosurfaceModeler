@@ -38,9 +38,8 @@ void ReleaseDlls()
 	dll_import.clear();
 }
 
-
 int load_foreground(const std::string& file_name, const vmobjects::VmVObjectVolume& main_volume, vmobjects::VmVObjectVolume& fore_volume,
-	const bool flip_x, const bool flip_y, const bool flip_z)
+	const int iso_value, const int downsacled_factor, const bool flip_x, const bool flip_y, const bool flip_z)
 {
 	VmVObjectVolume* pmain_volume = (VmVObjectVolume*)&main_volume;
 	const VolumeData* main_vol_data = (const VolumeData*)(pmain_volume->GetVolumeData());
@@ -50,133 +49,151 @@ int load_foreground(const std::string& file_name, const vmobjects::VmVObjectVolu
 	if (main_vol_data == NULL || fore_vol_data == NULL || fore_vol_data->vol_size != main_vol_data->vol_size)
 		return -1;
 
-	const int downsample_scale = 4;
-
 	vmint3 vol_size = main_vol_data->vol_size;
-	vmint3 load_mask_size = main_vol_data->vol_size / downsample_scale;
 	vmint3 bnd_size = main_vol_data->bnd_size;
 	// control??
-	vmint3 manual_shift = vmint3();
-
-	const int crop_boundary = 2;
-	vmfloat3 sign_scale = vmfloat3(flip_x ? -1.f : 1.f, flip_y ? -1.f : 1.f, flip_z ? -1.f : 1.f);
-	vmmat44f mat_mvs2ts, mat_s, mat_t, mat_t1, mat_s1, mat_ts2mvs;
-	fMatrixTranslation(&mat_t, &vmfloat3(0.5f));
-	fMatrixScaling(&mat_s, &vmfloat3(1.f / (float)(load_mask_size.x - manual_shift.x), 1.f / (float)(load_mask_size.y - manual_shift.y), 1.f / (float)(load_mask_size.z - manual_shift.z)));
-	fMatrixTranslation(&mat_t1, &vmfloat3(-0.5f));
-	fMatrixScaling(&mat_s1, &sign_scale);
-	mat_mvs2ts = mat_t * mat_s * mat_t1 * mat_s1;
-	fMatrixInverse(&mat_ts2mvs, &mat_mvs2ts);
-
-	fMatrixScaling(&mat_s, &vmfloat3(1.f / (float)(vol_size.x - 0), 1.f / (float)(vol_size.y - 0), 1.f / (float)(vol_size.z - 0)));
-	vmmat44f mat_vs2ts = mat_t * mat_s * mat_t1;
-	vmmat44f mat_vs2mvs = mat_vs2ts * mat_ts2mvs;
-
-	FILE* pFile;
-	fopen_s(&pFile, file_name.c_str(), "rb");
-	if (pFile == NULL)
-	{
-		___debugout("File Open Error : " + file_name, -1);
-		return -2;
-	}
-
-	typedef float LOAD_MASK; /// float
-	LOAD_MASK** temp_slices;
-	vmhelpers::AllocateVoidPointer2D((void***)&temp_slices, load_mask_size.z, load_mask_size.x*load_mask_size.y * sizeof(LOAD_MASK)); /// vxrDataTypeFLOAT
-	for (int z = 0; z < load_mask_size.z; z++)
-		fread(temp_slices[z], sizeof(LOAD_MASK), load_mask_size.x*load_mask_size.y, pFile);
-	fclose(pFile);
 
 #define LOAD_VALUE 3
 
-	auto read_pixel = [&](vmint3& p) -> int
+	if (iso_value < 0)
 	{
-		if (p.x < 0 || p.x >= load_mask_size.x || p.y < 0 || p.y >= load_mask_size.y || p.z < 0 || p.z >= load_mask_size.z) return 0;
-		return temp_slices[p.z][p.x + p.y * load_mask_size.x] < 0 ? LOAD_VALUE : 0;
-	};
+		// when the external segmention result is processed with downsampling scheme, downsample_scale > 1
+		const int downsample_scale = downsacled_factor;
+		vmint3 load_mask_size = main_vol_data->vol_size / downsample_scale;
+		vmint3 manual_shift = vmint3();
 
-	auto trilinearInterpolation = [](float v_0, float v_1, float v_2, float v_3, float v_4, float v_5, float v_6, float v_7,
-		const vmfloat3& ratio)
-	{
-		float v01 = v_0 * (1.f - ratio.x) + v_1 * ratio.x;
-		float v23 = v_2 * (1.f - ratio.x) + v_3 * ratio.x;
-		float v0123 = v01 * (1.f - ratio.y) + v23 * ratio.y;
-		float v45 = v_4 * (1.f - ratio.x) + v_5 * ratio.x;
-		float v67 = v_6 * (1.f - ratio.x) + v_7 * ratio.x;
-		float v4567 = v45 * (1.f - ratio.y) + v67 * ratio.y;
-		return v0123 * (1.f - ratio.z) + v4567 * ratio.z;
-	};
+		const int crop_boundary = 2;
+		vmfloat3 sign_scale = vmfloat3(flip_x ? -1.f : 1.f, flip_y ? -1.f : 1.f, flip_z ? -1.f : 1.f);
+		vmmat44f mat_mvs2ts, mat_s, mat_t, mat_t1, mat_s1, mat_ts2mvs;
+		fMatrixTranslation(&mat_t, &vmfloat3(0.5f));
+		fMatrixScaling(&mat_s, &vmfloat3(1.f / (float)(load_mask_size.x - manual_shift.x), 1.f / (float)(load_mask_size.y - manual_shift.y), 1.f / (float)(load_mask_size.z - manual_shift.z)));
+		fMatrixTranslation(&mat_t1, &vmfloat3(-0.5f));
+		fMatrixScaling(&mat_s1, &sign_scale);
+		mat_mvs2ts = mat_t * mat_s * mat_t1 * mat_s1;
+		fMatrixInverse(&mat_ts2mvs, &mat_mvs2ts);
 
-	int w = vol_size.x + bnd_size.x * 2;
-	for (int z = crop_boundary; z < vol_size.z - crop_boundary; z++)
-	{
-		for (int y = crop_boundary; y < vol_size.y - crop_boundary; y++)
+		fMatrixScaling(&mat_s, &vmfloat3(1.f / (float)(vol_size.x - 0), 1.f / (float)(vol_size.y - 0), 1.f / (float)(vol_size.z - 0)));
+		vmmat44f mat_vs2ts = mat_t * mat_s * mat_t1;
+		vmmat44f mat_vs2mvs = mat_vs2ts * mat_ts2mvs;
+
+		FILE* pFile;
+		fopen_s(&pFile, file_name.c_str(), "rb");
+		if (pFile == NULL)
 		{
-			for (int x = crop_boundary; x < vol_size.x - crop_boundary; x++)
-			{
-				vmfloat3 pos_vs = vmfloat3((float)x, (float)y, (float)z), pos_mvs;
-				fTransformPoint(&pos_mvs, &pos_vs, &mat_vs2mvs);
-
-				vmint3 pos_idx = vmint3((int)pos_mvs.x, (int)pos_mvs.y, (int)pos_mvs.z);
-				int v00 = read_pixel(pos_idx + vmint3(0, 0, 0));
-				int v10 = read_pixel(pos_idx + vmint3(1, 0, 0));
-				int v20 = read_pixel(pos_idx + vmint3(0, 1, 0));
-				int v30 = read_pixel(pos_idx + vmint3(1, 1, 0));
-				int v01 = read_pixel(pos_idx + vmint3(0, 0, 1));
-				int v11 = read_pixel(pos_idx + vmint3(1, 0, 1));
-				int v21 = read_pixel(pos_idx + vmint3(0, 1, 1));
-				int v31 = read_pixel(pos_idx + vmint3(1, 1, 1));
-
-				int xy_addr = x + bnd_size.x + (y + bnd_size.y) * (vol_size.x + bnd_size.x * 2);
-
-				vmfloat3 pos_idx_f(_f3_(pos_idx.x, pos_idx.y, pos_idx.z));
-				float v = trilinearInterpolation((float)v00, (float)v10, (float)v20, (float)v30, (float)v01, (float)v11, (float)v21, (float)v31, pos_mvs - pos_idx_f);
-				((byte**)fore_vol_data->vol_slices)[z + bnd_size.z][xy_addr] = v >= 1.5f ? (byte)LOAD_VALUE : (byte)0;
-
-				//int v = max(max(max(v00, v10), max(v20, v30)), max(max(v01, v11), max(v21, v31)));
-				//((byte**)vol_archive_out->vol_slices)[z + vol_archive_in->bnd_size.z][xy_addr] = (byte)v;
-			}
+			___debugout("File Open Error : " + file_name, -1);
+			return -2;
 		}
-	}
 
-	// test //
-	// search 101 in ui code
-	/*{
-		__VolSampleInfo<ushort> mask_filtered_info = Get_volsample_info<ushort>(pmain_volume, 1.f);
+		typedef float LOAD_MASK; /// float
+		LOAD_MASK** temp_slices;
+		vmhelpers::AllocateVoidPointer2D((void***)&temp_slices, load_mask_size.z, load_mask_size.x*load_mask_size.y * sizeof(LOAD_MASK)); /// vxrDataTypeFLOAT
+		for (int z = 0; z < load_mask_size.z; z++)
+			fread(temp_slices[z], sizeof(LOAD_MASK), load_mask_size.x*load_mask_size.y, pFile);
+		fclose(pFile);
+
+		auto read_pixel = [&](vmint3& p) -> int
+		{
+			if (p.x < 0 || p.x >= load_mask_size.x || p.y < 0 || p.y >= load_mask_size.y || p.z < 0 || p.z >= load_mask_size.z) return 0;
+			return temp_slices[p.z][p.x + p.y * load_mask_size.x] < 0 ? LOAD_VALUE : 0;
+		};
+
+		auto trilinearInterpolation = [](float v_0, float v_1, float v_2, float v_3, float v_4, float v_5, float v_6, float v_7,
+			const vmfloat3& ratio)
+		{
+			float v01 = v_0 * (1.f - ratio.x) + v_1 * ratio.x;
+			float v23 = v_2 * (1.f - ratio.x) + v_3 * ratio.x;
+			float v0123 = v01 * (1.f - ratio.y) + v23 * ratio.y;
+			float v45 = v_4 * (1.f - ratio.x) + v_5 * ratio.x;
+			float v67 = v_6 * (1.f - ratio.x) + v_7 * ratio.x;
+			float v4567 = v45 * (1.f - ratio.y) + v67 * ratio.y;
+			return v0123 * (1.f - ratio.z) + v4567 * ratio.z;
+		};
 
 		int w = vol_size.x + bnd_size.x * 2;
-		int h = vol_size.y + bnd_size.x * 2;
-		int d = vol_size.z + bnd_size.x * 2;
-		vmhelpers::AllocateVoidPointer2D((void***)&mask_filtered_info.vol_slices, d, w*h * sizeof(ushort));
-		for (int z = 0; z < vol_size.z; z++)
+		for (int z = crop_boundary; z < vol_size.z - crop_boundary; z++)
 		{
-			for (int y = 0; y < vol_size.y; y++)
+			for (int y = crop_boundary; y < vol_size.y - crop_boundary; y++)
 			{
-				for (int x = 0; x < vol_size.x; x++)
+				for (int x = crop_boundary; x < vol_size.x - crop_boundary; x++)
 				{
-					int xy_addr = x + bnd_size.x + (y + bnd_size.y) * (vol_size.x + bnd_size.x * 2);
-					byte __v = ((byte**)fore_vol_data->vol_slices)[z + bnd_size.z][xy_addr];
-					__WriteVoxel(__v > 0 ? (ushort)60000 : (ushort)0, vmint3(x, y, z), mask_filtered_info.width_slice, EXB, (ushort**)mask_filtered_info.vol_slices);
-				}
-			}
-		}
-		LocalProgress _progress;
-		MorphGaussianBlur3D(mask_filtered_info.vol_slices, mask_filtered_info.vol_slices, vmint3(w, h, d), vmint2(), 2, 1.4f, &_progress);
-		for (int z = 0; z < vol_size.z; z++)
-		{
-			for (int y = 0; y < vol_size.y; y++)
-			{
-				for (int x = 0; x < vol_size.x; x++)
-				{
-					ushort __v = __ReadVoxel(vmint3(x, y, z), mask_filtered_info.width_slice, EXB, mask_filtered_info.vol_slices);
-					int xy_addr = x + bnd_size.x + (y + bnd_size.y) * (vol_size.x + bnd_size.x * 2);
-					((byte**)fore_vol_data->vol_slices)[z + bnd_size.z][xy_addr] = __v >= 30000 ? (byte)LOAD_VALUE : (byte)0;
-				}
-			}
-		}
-	}/**/
+					vmfloat3 pos_vs = vmfloat3((float)x, (float)y, (float)z), pos_mvs;
+					fTransformPoint(&pos_mvs, &pos_vs, &mat_vs2mvs);
 
-	VMSAFE_DELETE2DARRAY(temp_slices, load_mask_size.z);
+					vmint3 pos_idx = vmint3((int)pos_mvs.x, (int)pos_mvs.y, (int)pos_mvs.z);
+					int v00 = read_pixel(pos_idx + vmint3(0, 0, 0));
+					int v10 = read_pixel(pos_idx + vmint3(1, 0, 0));
+					int v20 = read_pixel(pos_idx + vmint3(0, 1, 0));
+					int v30 = read_pixel(pos_idx + vmint3(1, 1, 0));
+					int v01 = read_pixel(pos_idx + vmint3(0, 0, 1));
+					int v11 = read_pixel(pos_idx + vmint3(1, 0, 1));
+					int v21 = read_pixel(pos_idx + vmint3(0, 1, 1));
+					int v31 = read_pixel(pos_idx + vmint3(1, 1, 1));
+
+					int xy_addr = x + bnd_size.x + (y + bnd_size.y) * (vol_size.x + bnd_size.x * 2);
+
+					vmfloat3 pos_idx_f(_f3_(pos_idx.x, pos_idx.y, pos_idx.z));
+					float v = trilinearInterpolation((float)v00, (float)v10, (float)v20, (float)v30, (float)v01, (float)v11, (float)v21, (float)v31, pos_mvs - pos_idx_f);
+					((byte**)fore_vol_data->vol_slices)[z + bnd_size.z][xy_addr] = v >= 1.5f ? (byte)LOAD_VALUE : (byte)0;
+
+					//int v = max(max(max(v00, v10), max(v20, v30)), max(max(v01, v11), max(v21, v31)));
+					//((byte**)vol_archive_out->vol_slices)[z + vol_archive_in->bnd_size.z][xy_addr] = (byte)v;
+				}
+			}
+		}
+
+		// test //
+		// search 101 in ui code
+		/*{
+			__VolSampleInfo<ushort> mask_filtered_info = Get_volsample_info<ushort>(pmain_volume, 1.f);
+
+			int w = vol_size.x + bnd_size.x * 2;
+			int h = vol_size.y + bnd_size.x * 2;
+			int d = vol_size.z + bnd_size.x * 2;
+			vmhelpers::AllocateVoidPointer2D((void***)&mask_filtered_info.vol_slices, d, w*h * sizeof(ushort));
+			for (int z = 0; z < vol_size.z; z++)
+			{
+				for (int y = 0; y < vol_size.y; y++)
+				{
+					for (int x = 0; x < vol_size.x; x++)
+					{
+						int xy_addr = x + bnd_size.x + (y + bnd_size.y) * (vol_size.x + bnd_size.x * 2);
+						byte __v = ((byte**)fore_vol_data->vol_slices)[z + bnd_size.z][xy_addr];
+						__WriteVoxel(__v > 0 ? (ushort)60000 : (ushort)0, vmint3(x, y, z), mask_filtered_info.width_slice, EXB, (ushort**)mask_filtered_info.vol_slices);
+					}
+				}
+			}
+			LocalProgress _progress;
+			MorphGaussianBlur3D(mask_filtered_info.vol_slices, mask_filtered_info.vol_slices, vmint3(w, h, d), vmint2(), 2, 1.4f, &_progress);
+			for (int z = 0; z < vol_size.z; z++)
+			{
+				for (int y = 0; y < vol_size.y; y++)
+				{
+					for (int x = 0; x < vol_size.x; x++)
+					{
+						ushort __v = __ReadVoxel(vmint3(x, y, z), mask_filtered_info.width_slice, EXB, mask_filtered_info.vol_slices);
+						int xy_addr = x + bnd_size.x + (y + bnd_size.y) * (vol_size.x + bnd_size.x * 2);
+						((byte**)fore_vol_data->vol_slices)[z + bnd_size.z][xy_addr] = __v >= 30000 ? (byte)LOAD_VALUE : (byte)0;
+					}
+				}
+			}
+		}/**/
+
+		VMSAFE_DELETE2DARRAY(temp_slices, load_mask_size.z);
+	}
+	else
+	{
+		// isovalue thresolding
+		const ushort** ppdata_in = (const ushort**)main_vol_data->vol_slices;
+		byte** ppdata_out = (byte**)fore_vol_data->vol_slices;
+
+		int w = main_vol_data->vol_size.x + 2 * 2;
+		int h = main_vol_data->vol_size.y + 2 * 2;
+		int d = main_vol_data->vol_size.z + 2 * 2;
+		for (int z = 0; z < d; z++)
+			for (int xy = 0; xy < w*h; xy++)
+				ppdata_out[z][xy] = ppdata_in[z][xy] >= iso_value ? LOAD_VALUE : 0;
+
+	}
 
 	return 0;
 }
@@ -1531,4 +1548,82 @@ int processing_final(vmobjects::VmVObjectPrimitive& surface_mesh,
 	register_trisBuf_to_pobj(trisbuf, surface_mesh);
 
 	return 0;
+}
+
+bool function_launcher(const std::vector<vmobjects::VmObject*>& io_objs, const std::map<std::string, std::any>& parameters)
+{
+	using namespace std;
+	std::map<std::string, std::any>& _parameters = (std::map<std::string, std::any>&)parameters;
+	const std::string& function_name = any_cast<string>(_parameters["function_name"]);
+	if (function_name == "load_foreground")
+	{
+		if (io_objs.size() != 2) return false;
+		VmVObjectVolume& main_volume = *(VmVObjectVolume*)io_objs[0];
+		VmVObjectVolume& fore_volume = *(VmVObjectVolume*)io_objs[1];
+
+		load_foreground(any_cast<string>(_parameters["file_name"]), main_volume, fore_volume,
+			any_cast<int>(_parameters["iso_value"]), any_cast<int>(_parameters["downsacled_factor"]),
+			any_cast<bool>(_parameters["flip_x"]), any_cast<bool>(_parameters["flip_y"]), any_cast<bool>(_parameters["flip_z"]));
+	}
+	else if (function_name == "processing_stage1")
+	{
+		if (io_objs.size() != 4) return false;
+		VmVObjectPrimitive& cand_pts = *(VmVObjectPrimitive*)io_objs[0];
+		VmVObjectVolume& filtered_volume = *(VmVObjectVolume*)io_objs[1];
+		VmVObjectVolume& main_volume = *(VmVObjectVolume*)io_objs[2];
+		VmVObjectVolume& fore_volume = *(VmVObjectVolume*)io_objs[3];
+
+		processing_stage1(cand_pts, filtered_volume, main_volume, fore_volume,
+			any_cast<int>(_parameters["t_in"]), any_cast<int>(_parameters["t_out"]),
+			any_cast<float>(_parameters["min_sample_v"]), any_cast<float>(_parameters["max_sample_v"]),
+			any_cast<int>(_parameters["gaussian_kernel_width"]), any_cast<float>(_parameters["simplify_grid_length"]), any_cast<float>(_parameters["geometric_complexity_kernel_ratio"]));
+	}
+	else if (function_name == "update_strongweak_points")
+	{
+		if (io_objs.size() != 1) return false;
+		VmVObjectPrimitive& cand_pts = *(VmVObjectPrimitive*)io_objs[0];
+
+		update_strongweak_points(cand_pts, any_cast<float>(_parameters["g_h"]), any_cast<float>(_parameters["mu_u"]));
+	}
+	else if (function_name == "processing_stage2")
+	{
+		if (io_objs.size() != 4) return false;
+		VmVObjectPrimitive& reliable_pts = *(VmVObjectPrimitive*)io_objs[0];
+		VmVObjectPrimitive& hf_pts = *(VmVObjectPrimitive*)io_objs[1];
+		VmVObjectVolume& sample_volume = *(VmVObjectVolume*)io_objs[2];
+		VmVObjectPrimitive& cand_pts = *(VmVObjectPrimitive*)io_objs[3];
+
+		processing_stage2(reliable_pts, hf_pts, sample_volume, cand_pts, any_cast<float>(_parameters["g_h"]), any_cast<float>(_parameters["mu_u"]),
+			any_cast<float>(_parameters["epsilon"]), any_cast<int>(_parameters["connectivity_criterion"]), any_cast<float>(_parameters["epsilon_b"]), any_cast<float>(_parameters["angle_criterion"]));
+	}
+	else if (function_name == "update_holefill_points")
+	{
+		if (io_objs.size() != 1) return false;
+		VmVObjectPrimitive& hf_pts = *(VmVObjectPrimitive*)io_objs[0];
+
+		update_holefill_points(hf_pts, any_cast<int>(_parameters["eta"]), any_cast<float>(_parameters["m"]), any_cast<bool>(_parameters["show_nc"]));
+	}
+	else if (function_name == "localisosurface_points")
+	{
+		if (io_objs.size() != 6) return false;
+		VmVObjectPrimitive& ls_reliable_pts = *(VmVObjectPrimitive*)io_objs[0];
+		VmVObjectPrimitive& ls_hf_pts = *(VmVObjectPrimitive*)io_objs[1];
+		VmVObjectVolume& ct_vol = *(VmVObjectVolume*)io_objs[2];
+		VmVObjectVolume& filtered_vol = *(VmVObjectVolume*)io_objs[3];
+		VmVObjectPrimitive& reliable_pts = *(VmVObjectPrimitive*)io_objs[4];
+		VmVObjectPrimitive& hf_pts = *(VmVObjectPrimitive*)io_objs[5];
+
+		localisosurface_points(ls_reliable_pts, ls_hf_pts, ct_vol, filtered_vol, reliable_pts, hf_pts, any_cast<int>(_parameters["epsilon_s"]), any_cast<int>(_parameters["eta"]));
+	}
+	else if (function_name == "processing_final")
+	{
+		if (io_objs.size() != 4) return false;
+		VmVObjectPrimitive& final_mesh = *(VmVObjectPrimitive*)io_objs[0];
+		VmVObjectPrimitive& ls_reliable_pts = *(VmVObjectPrimitive*)io_objs[1];
+		VmVObjectPrimitive& ls_hf_pts = *(VmVObjectPrimitive*)io_objs[2];
+		VmVObjectPrimitive& hf_pts = *(VmVObjectPrimitive*)io_objs[3];
+
+		processing_final(final_mesh, ls_reliable_pts, ls_hf_pts, hf_pts, any_cast<int>(_parameters["eta"]), any_cast<float>(_parameters["m"]), any_cast<int>(_parameters["otlev"]));
+	}
+	return false;
 }
