@@ -205,7 +205,7 @@ int processing_stage1(vmobjects::VmVObjectPrimitive& candidate_pts, vmobjects::V
 	const float simplify_grid_length/* = 1.f /*voxel unit*/,
 	const float geometric_complexity_kernel_ratio/* = 0.01 /*w.r.t. bounding box of target geometry*/)
 {
-	if (t_in <= 0 && t_in <= 0) return -1;
+	if (t_in <= 0 && t_out <= 0) return -1;
 
 	cout << ">>> # of CPU Cores : " << omp_get_num_procs() << endl;
 
@@ -459,6 +459,7 @@ int processing_stage1(vmobjects::VmVObjectPrimitive& candidate_pts, vmobjects::V
 		cout << ">>> Time for ray traversal : " << timeGetTime() - time_stage1_rt << " ms" << endl;
 	}
 
+	assert(lmax_pts.size() > 0);
 	// simplification //
 	vector<vmfloat3> pos_candidate_pts;
 	vmfloat3 aabb_diff;
@@ -469,6 +470,7 @@ int processing_stage1(vmobjects::VmVObjectPrimitive& candidate_pts, vmobjects::V
 		cout << ">>> Time for simplification : " << timeGetTime() - time_stage1_sp << " ms" << endl;
 		lmax_pts.clear();
 	}
+
 	//calculate gc
 	{
 		time_stage1_gc = timeGetTime();
@@ -497,6 +499,7 @@ int processing_stage1(vmobjects::VmVObjectPrimitive& candidate_pts, vmobjects::V
 		VmLObject* lobj = candidate_pts.GetBufferObject();
 		lobj->ReplaceOrAddBufferPtr("_vlist_float_gm", (float*)&metric_gm[0], (int)metric_gm.size(), sizeof(float));
 		lobj->ReplaceOrAddBufferPtr("_vlist_float_gc", (float*)&metric_gc[0], (int)metric_gc.size(), sizeof(float));
+		
 		candidate_pts.RegisterCustomParameter("_double_minpitch", (double)vol_original_info.min_sample_dist);
 
 		vector<int> jet_color_map(COLORMAP_SIZE);
