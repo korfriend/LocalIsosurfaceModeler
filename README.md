@@ -53,6 +53,7 @@ Current build environment assumes the following structure of the developement fo
 build folders (e.g., X64_Debug and X64_Release) should include the following dll files
 - CommonUnits.dll
 - vismtv_morphfilters.dll
+
 and some OpenCV dll files for the Sample1 project (here, '...420d.dll' files for X64_Debug while '...420.dll' files for X64_Release)
 - opencv_core420(d).dll
 - opencv_highgui420(d).dll
