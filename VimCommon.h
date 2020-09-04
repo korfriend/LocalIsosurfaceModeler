@@ -84,8 +84,10 @@ namespace vmd
 	typedef unsigned int uint;
 #endif
 #if !defined(byte)
-	typedef unsigned char byte;
+	//typedef unsigned char byte;
+	//#define byte unsigned char
 #endif
+	//typedef std::byte byte;
 #ifndef ullong
 	typedef unsigned long long ullong;
 #endif
@@ -102,12 +104,12 @@ namespace vmd
 #include <glm/gtc/type_ptr.hpp>
 	typedef struct color4 {
 		union { struct { byte r, g, b, a; }; struct { byte x, y, z, w; }; };
-		color4() { r = g = b = a = 0; };
+		color4() { r = g = b = a = (byte)0; };
 		color4(byte _r, byte _g, byte _b, byte _a) { r = _r; g = _g; b = _b; a = _a; };
 	} vmbyte4;
 	typedef struct color3 {
 		union { struct { byte r, g, b; }; struct { byte x, y, z; }; };
-		color3() { r = g = b = 0; };
+		color3() { r = g = b = (byte)0; };
 		color3(byte _r, byte _g, byte _b) { r = _r; g = _g; b = _b; };
 	} vmbyte3;
 	typedef struct char2 {
@@ -115,7 +117,7 @@ namespace vmd
 		char2(char _x, char _y) { x = _x; y = _y; }
 	} vmchar2;
 	typedef struct byte2 {
-		byte x, y; byte2() { x = y = 0; }
+		byte x, y; byte2() { x = y = (byte)0; }
 		byte2(byte _x, byte _y) { x = _x; y = _y; }
 	} vmbyte2;
 	typedef struct short2 {
