@@ -1,4 +1,4 @@
-/*
+Ôªø/*
 Copyright (c) 2006, Michael Kazhdan and Matthew Bolitho
 All rights reserved.
 
@@ -302,9 +302,9 @@ struct ConstraintDual
 	Real target , weight;
 	ConstraintDual(Real t, Real w) : target(t), weight(w) { }
 	CumulativeDerivativeValues< Real, Dim, 0 > operator()(const Point< Real, Dim >& p) const {
-		// p ∞° ø©±‚º± æ» æ≤¿Œ¥Ÿ... -_-??
-		// p ø° ¥Î«ÿ, ≥™∏ß¿« weight ∏¶ √ﬂ∞°«“ ºˆ ¿÷¥Ÿ.
-		// ¿Ã∞« ≥™¡ﬂø°...
+		// p is not used here. -_-??
+		// regaring p, customized weight can be added.
+		// later for this work
 		// dojo to do
 		auto ret = CumulativeDerivativeValues< Real, Dim, 0 >(target*weight);  // Point< Real , CumulativeDerivatives< Dim , D >::Size >;
 		return ret;
@@ -515,7 +515,7 @@ void Execute( MyInOutStream<__Coord>& my_inout_stream, UIntPack< FEMSigs ... > )
 	std::vector< TotalPointSampleData >* sampleData = NULL;
 	DensityEstimator* density = NULL;
 	SparseNodeData< Point< Real , Dim > , NormalSigs >* normalInfo = NULL;
-	Real targetValue = (Real)0.5; // implicit function ø°º≠ iso-value ¿« ±‚¡ÿ (¿Ã∞Õ¿ª ±‚¡ÿ¿∏∑Œ level set surface ¡§¿«)
+	Real targetValue = (Real)0.5; // iso-value for implicit function 
 
 	// Read in the samples (and (optional) color data or confidence data)
 	{
@@ -628,7 +628,7 @@ void Execute( MyInOutStream<__Coord>& my_inout_stream, UIntPack< FEMSigs ... > )
 				return (Real)1.;
 			};
 			// modified by dojo 
-			// Samples and Tree Node ª˝º∫ ¡ﬂ »£√‚
+			// generating Samples and Tree Node 
 			auto ProcessDataWithAuxConfidence = [&](const Point< Real, Dim >& p, const int idx, bool& is_confidence_point, 
 				TotalPointSampleData& d)
 			{
@@ -685,11 +685,11 @@ void Execute( MyInOutStream<__Coord>& my_inout_stream, UIntPack< FEMSigs ... > )
 		tree.resetNodeIndices();
 
 		// Get the kernel density estimator
-		// ø©±‚ø°º≠ (∞‚Ω√∞‚Ω√) node ø° ¥Î«— sample data ∞° √≥∏Æµ .
+		// Here, sample data for the nodes is processed.
 		{
 			profiler.start();
 			// WEIGHT_DEGREE ==> Degree ???
-			// weight ∏¶ node ø° splatting 
+			// weight Î•º node Ïóê splatting 
 			density = tree.template setDensityEstimator< WEIGHT_DEGREE >( *samples , kernelDepth , SamplesPerNode.value , 1 );
 			profiler.dumpOutput2( comments , "#   Got kernel density:" );
 		}
@@ -698,8 +698,8 @@ void Execute( MyInOutStream<__Coord>& my_inout_stream, UIntPack< FEMSigs ... > )
 		{
 			profiler.start(); 
 			normalInfo = new SparseNodeData< Point< Real , Dim > , NormalSigs >();
-			// max depth node ø°º≠∏∏ 
-			// node ø°º≠ splatting µ» weight ∏¶ ±‚π›¿∏∑Œ B-spline ¿∏∑Œ normal ¿Ã  splating µ .
+			// only for max depth node 
+			// normals are splatted similarly to the weight splatted from the nodes, based on the B-spline.
 			if( ConfidenceBias.value>0 ) 
 				*normalInfo = tree.setNormalField( NormalSigs() , *samples , *sampleData , density , pointWeightSum , [&]( Real conf ){ return (Real)( log( conf ) * ConfidenceBias.value / log( 1<<(Dim-1) ) ); } );
 			else                         
@@ -1029,7 +1029,7 @@ int main( int argc , char* argv[] )
 	
 	Depth.value = 5;
 	Depth.set = true;
-	FullDepth.value = 3; // ¿Ã¿¸ πˆ¿¸ø°º≠¥¬ 
+	FullDepth.value = 3; // Ïù¥Ï†Ñ Î≤ÑÏ†ÑÏóêÏÑúÎäî 
 	FullDepth.set = true;
 	KernelDepth.value = Depth.value;
 	KernelDepth.set = true;
@@ -1146,7 +1146,7 @@ bool ScreenedPoissonSurface3D(__ProcBuffers< __float3>* pOut,
 	//PointWeight.set = true;
 	//Depth.value = 5;
 	//Depth.set = true;
-	//FullDepth.value = 0; // ¿Ã¿¸ πˆ¿¸ø°º≠¥¬ 
+	//FullDepth.value = 0; // Ïù¥Ï†Ñ Î≤ÑÏ†ÑÏóêÏÑúÎäî 
 	//FullDepth.set = true;
 	//KernelDepth.value = Depth.value;
 	//KernelDepth.set = true;

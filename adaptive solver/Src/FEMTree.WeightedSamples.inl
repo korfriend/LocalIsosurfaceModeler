@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 Copyright (c) 2006, Michael Kazhdan and Matthew Bolitho
 All rights reserved.
 
@@ -50,44 +50,43 @@ template< unsigned int Dim , class Real >
 template< unsigned int WeightDegree >
 void FEMTree< Dim , Real >::_addWeightContribution( DensityEstimator< WeightDegree >& densityWeights , FEMTreeNode* node , Point< Real , Dim > position , PointSupportKey< IsotropicUIntPack< Dim , WeightDegree > >& weightKey , Real weight )
 {
-	// support element ¿¡ ´ëÇÑ °¢ element ÀÇ contribution ÇÕÀÌ 1 ÀÌ µÇµµ·Ï scale
-	// ÀÌ°ÍÀÌ ³Ê¹« Å©¸é Á¡ Áß½ÉÀ¸·Î energy °¡ ¸ô¸² (Á¡ Áß½ÉÀ¸·Î ±¸µéÀÌ »ı¼ºµÊ)
-	// ³Ê¹« ÀÛÀ¸¸é Á¡ ¹ÛÀ¸·Î energy °¡ ³ª°¨
-	// Àû´çÇÑ °ªÀº... weight ÀÇ weighed average °ªÀ» ÃëÇÔ
-	// ¾Æ¸¶ density estimation ÇÏ´Â ³í¹®¿¡¼­ ÀÌ·¸°Ô ÇÏ¶ó°í ¼³¸íµÇ¾î ÀÖÀ» µí... ³ªÁß¿¡ È®ÀÎ..
+	// scaling for the sum of elements of the support elements to be 1 
+	// if this is too large, energy is concentrated around the points (spheres are created around the points)
+	// if this is too small, energy is faded outside the points
+	// adequate value... weight's weighed average
+	// maybe "density estimation" paper introduce this approach... (later check!)
 	static const double ScaleValue = GetScaleValue< WeightDegree >();
 	double values[ Dim ][ BSplineSupportSizes< WeightDegree >::SupportSize ];
-	// getNeighbors ==> getNeighbors< 'true' > ¿¡¼­ true ´Â... sample node ·ÎºÎÅÍ »ı¼ºµÈ node ¿ÜÀÇ ¸ğµç ÀÌ¿ô node ¸¦ get 
-	// ÀÌ °úÁ¤¿¡¼­ »õ·Î¿î node °¡ »ı¼ºµÉ ¼ö ÀÖÀ¸¸ç, ÇØ´ç node ÀÇ ºÎ¸ğ´Â null ÀÏ¼öµµ ÀÖÀ½
-	// ÀÌ·± ÀÇ¹Ì¿¡¼­ if(IsActiveNode< Dim >( _node )) Àº sample node ·ÎºÎÅÍ »ı¼ºµÈ node ¸¸ º¸´Â °ÍÀÌ°í
-	// ¿©±â¿¡¼­ »ç¿ëµÇ´Â if(_node) Àº ¸ğµç neighbor ¸¦ º¸´Â °ÍÀÓ
+	// getNeighbors ==> getNeighbors< 'true' > true means... neighbor nodes from the sample node
+	// in this procedure, new nodes can be generated and the nodes may have 'null' parents
+	// in this manner, 'if(IsActiveNode< Dim >( _node ))' handles the nodes generated from the sample node, and
+	// 'if(_node) ... used in this' handles all neighbor nodes
 	typename FEMTreeNode::template Neighbors< IsotropicUIntPack< Dim , BSplineSupportSizes< WeightDegree >::SupportSize > >& neighbors = weightKey.template getNeighbors< true >( node , nodeAllocator , _NodeInitializer( *this ) );
 
 	// modified by dojo
-	// splatting ½Ã ÁÖº¯ sample / node ¿¡ ÁÖ´Â ¿µÇâ¿¡ ´ëÇÑ °ÍÀ¸·Î
-	// ¿©±â¼­ ÇÙ½ÉÀº
-	// conf ==> ºñ aux field point sample ¿¡ ¿µÇâ ÁÖµµ·Ï
-	// aux field point sample Àº ÀÚ±â ÀÚ½Å¿¡¸¸ ¿µÇâ ÁÖµµ·Ï
-	// ÇÏ´Â °Í.
+	// when splatting, influence for the sample nodes and their neighbors
+	// here, 
+	// conf ==> impact for the non aux field point samples 
+	// aux field point sample ==> only for themselves
 
 	densityWeights.reserve( nodeCount() );
 
 	Point< Real , Dim > start;
-	Real w; // node ÀÇ width ÀÇ¹Ì
+	Real w; // node's width 
 	_startAndWidth( node , start , w );
 
 	// values ==> spline weight values
-	// position ÀÌ node Áß½ÉÁ¡ ´ëºñ shift µÈ °Í¿¡ ´ëÇÑ BSpline...
+	// position's shift according to the center position of the node based on BSpline...
 	for( int dim=0 ; dim<Dim ; dim++ ) Polynomial< WeightDegree >::BSplineComponentValues( ( position[dim]-start[dim] ) / w , values[dim] );
 
 	weight *= (Real)ScaleValue;
 	double scratch[Dim+1];
 	scratch[0] = weight;
 	// modified by dojo
-	// node °ªÀÌ ÀÌ¿ôµé·Î ÆÛÁ®³ª°¡´Â ¹æ½Ä (BSpline support ¸¦ ±â¹İÀ¸·Î splatting)
-	// aux ´Â sample node ¿¡ ÃæºĞÈ÷ ¸ÅÇÎµÇµµ·Ï ÁÖ¾îÁü... ÆÛÁöÁö ¾Ê°Ô...
-	// aux ´Â density ¿¡ ÇØ´ç weight ¸¸ ÁÖ¾îÁöµµ·Ï...
-	// conf ´Â aux ¿Ü¿¡¸¸ ÆÛÁöµµ·Ï...
+	// the way of spreading the nodes to their neighbors (splatting based on BSpline support)
+	// aux : only for sample nodes
+	// aux : only wight for spreading..
+	// conf : only for non aux nodes
 	WindowLoop< Dim >::Run
 	(
 		IsotropicUIntPack< Dim , 0 >() , IsotropicUIntPack< Dim , BSplineSupportSizes< WeightDegree >::SupportSize >() ,
@@ -95,20 +94,20 @@ void FEMTree< Dim , Real >::_addWeightContribution( DensityEstimator< WeightDegr
 			scratch[d+1] = scratch[d] * values[d][i]; 
 		} ,
 		[&]( FEMTreeNode* _node ){ 
-			// ¿©±â¼­´Â ¸ğµç neighbor ¸¦ º½ (sample node ·ÎºÎÅÍ ÆÄ»ıµÈ node »Ó¸¸ ¾Æ´Ï¶ó ¸ğµç ÀÌ¿ô node)
-			// _node->confidence_flag °¡ DEFAULT ÀÏ ¼ö ÀÖÀ½ (not set)
+			// here, processing the entire neighbor nodes (not only nodes from the sample node but also its neighbor node)
+			// _node->confidence_flag may be DEFAULT (not set)
 			// cf. if(IsActiveNode< Dim >( _node ))
 			if (_node) 
 			{
 				//if (node->confidence_flag == CONFI_VF_AUX_ONLY)
 				//{
-				//	//if (_node == node) // ÀÚ±â ÀÚ½Å ÀÏ ¶§¸¸ ÇÕ...?! ¾Æ´Ï¸é ¾Æ¿¹ ¹èÁ¦?
+				//	//if (_node == node) 
 				//	//	AddAtomic(densityWeights[_node], (Real)scratch[Dim]);
 				//	if (_node->confidence_flag != CONFI_VF_VISITED)
 				//		AddAtomic(densityWeights[_node], (Real)scratch[Dim]);
 				//}
 				//// node is CONFI_VF_VISITED
-				//// ISUUE TO DO............. ±×³É confidence node ´Â ´Ù splatting µÇ°Ô ÇÏ´Â °ÍÀÌ ¸Â´Â °Í °°´Ù..??
+				//// ISUUE TO DO............. just confidence node to be splatted..??
 				//else if (_node->confidence_flag != CONFI_VF_AUX_ONLY)
 					AddAtomic(densityWeights[_node], (Real)scratch[Dim]);
 			}
@@ -191,7 +190,7 @@ template< unsigned int Dim , class Real >
 template< bool CreateNodes , class V , unsigned int ... DataSigs >
 void FEMTree< Dim , Real >::_splatPointData( FEMTreeNode* node , Point< Real , Dim > position , V v , SparseNodeData< V , UIntPack< DataSigs ... > >& dataInfo , PointSupportKey< UIntPack< FEMSignature< DataSigs >::Degree ... > >& dataKey )
 {
-	// density °¡ ÀÖÀ» °æ¿ì density ¸¦ parameter ·Î °®´Â _splatPointData ¿¡¼­ È£Ãâ
+	// density ê°€ ìˆì„ ê²½ìš° density ë¥¼ parameter ë¡œ ê°–ëŠ” _splatPointData ì—ì„œ í˜¸ì¶œ
 	typedef UIntPack< BSplineSupportSizes< FEMSignature< DataSigs >::Degree >::SupportSize ... > SupportSizes;
 	double values[ Dim ][ SupportSizes::Max() ];
 	typename FEMTreeNode::template Neighbors< UIntPack< BSplineSupportSizes< FEMSignature< DataSigs >::Degree >::SupportSize ... > >& neighbors = dataKey.template getNeighbors< CreateNodes >( node , nodeAllocator , _NodeInitializer( *this ) );
@@ -204,8 +203,8 @@ void FEMTree< Dim , Real >::_splatPointData( FEMTreeNode* node , Point< Real , D
 	double scratch[Dim+1];
 	scratch[0] = 1;
 	// modified by dojo
-	// _addWeightContribution ¿Í µ¿ÀÏÇÑ Á¤Ã¥
-	// aux normal Àº ÇØ´ç node ¿¡¸¸ set
+	// the same scheme as _addWeightContribution 
+	// aux normal sets the corresponding node
 	WindowLoop< Dim >::Run
 	(
 		ZeroUIntPack< Dim >() , UIntPack< BSplineSupportSizes< FEMSignature< DataSigs >::Degree >::SupportSize ... >() ,
@@ -213,8 +212,8 @@ void FEMTree< Dim , Real >::_splatPointData( FEMTreeNode* node , Point< Real , D
 			scratch[d+1] = scratch[d] * values[d][i]; 
 		} ,
 		[&]( FEMTreeNode* _node ){ 
-			// IsActiveNode ==> ÀÚ½ÅÀ» Æ÷ÇÔ ¸ğµç »óÃş (ºÎ¸ğ.. ºÎ¸ğÀÇ ºÎ¸ğ...) node °¡ ¸ğµÎ null ÀÌ ¾Æ´Ò ¶§ true
-			// Áï, sample node ·ÎºÎÅÍ »ı¼ºµÈ node ¸¸ Ãë±Ş
+			// IsActiveNode ==> only when node itself as well as its parent nodes are not null , true
+			// i.e., handles the nodes from the sample node 
 			if (IsActiveNode< Dim >(_node))
 			{
 				//if (node->confidence_flag == CONFI_VF_AUX_ONLY)
@@ -237,7 +236,7 @@ template< unsigned int Dim , class Real >
 template< bool CreateNodes , unsigned int WeightDegree , class V , unsigned int ... DataSigs >
 Real FEMTree< Dim , Real >::_splatPointData( const DensityEstimator< WeightDegree >& densityWeights , Point< Real , Dim > position , V v , SparseNodeData< V , UIntPack< DataSigs ... > >& dataInfo , PointSupportKey< IsotropicUIntPack< Dim , WeightDegree > >& weightKey , PointSupportKey< UIntPack< FEMSignature< DataSigs >::Degree ... > >& dataKey , LocalDepth minDepth , LocalDepth maxDepth , int dim , Real depthBias )
 {
-	// density °¡ ÀÖÀ» °æ¿ì ÀÌ°ÍÀÌ È£ÃâµÇ¸ç, Çö ¹öÀü¿¡¼­´Â ÀÏ´Ü ÀÌ°ÍÀÌ È£ÃâµÇ¾î ¼öÇàµÊ
+	// only for density 
 	double dx;
 	V _v;
 	FEMTreeNode* temp;
