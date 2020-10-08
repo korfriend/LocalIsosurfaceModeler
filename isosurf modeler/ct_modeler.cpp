@@ -564,6 +564,7 @@ int update_strongweak_points(vmobjects::VmVObjectPrimitive& candidate_pts, const
 	cout << "     * g_h  : " << g_h << endl;
 	cout << "     * mu_u : " << mu_u << endl;
 
+	candidate_pts.RegisterCustomParameter("_bool_UpdateData", true);
 	double min_pitch = 0;
 	candidate_pts.GetCustomParameter("_double_minpitch", data_type::dtype<double>(), &min_pitch);
 	int* jet_color_map_ptr;
@@ -998,6 +999,7 @@ int update_holefill_points(vmobjects::VmVObjectPrimitive& holefill_pts, const in
 	cout << "     * m       : " << m << endl;
 	cout << "     * show_nc : " << show_nc << endl;
 
+	holefill_pts.RegisterCustomParameter("_bool_UpdateData", true);
 	PrimitiveData* prim_data = holefill_pts.GetPrimitiveData();
 	if (prim_data == NULL)
 	{
@@ -1063,7 +1065,8 @@ int localisosurface_points(vmobjects::VmVObjectPrimitive& sm_reliable_pts, vmobj
 	const vmobjects::VmVObjectPrimitive& reliable_pts, const vmobjects::VmVObjectPrimitive& holefill_pts, const int e_s, const int eta)
 {
 	cout << "     * epilon_s  : " << e_s << endl;
-
+	sm_reliable_pts.RegisterCustomParameter("_bool_UpdateData", true);
+	sm_holefill_pts.RegisterCustomParameter("_bool_UpdateData", true);
 	float sample_dist_scale = 1.f;
 	VmVObjectVolume* poriginal_volume = (VmVObjectVolume*)&original_volume;
 	VmVObjectVolume* pfiltered_volume = (VmVObjectVolume*)&filtered_volume;
@@ -1309,7 +1312,7 @@ int processing_final(vmobjects::VmVObjectPrimitive& surface_mesh,
 	cout << "     * m    : " << m << endl;
 
 	int _otlev = otlev;
-	if (otlev < 0)
+	if (otlev <= 0)
 	{
 		vmint3 vol_size;
 		holefill_pts.GetCustomParameter("_int3_VolSize", data_type::dtype<vmint3>(), &vol_size);
